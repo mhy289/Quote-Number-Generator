@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/rs/cors"
 	"log"
@@ -26,7 +27,8 @@ func (s *generatorService) GetRandomNumber(
 	min := req.Msg.Min
 	max := req.Msg.Max
 	if max < min {
-		min, max = max, min
+		// 返回 ConnectRPC 参数错误
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("最小值不能大于最大值"))
 	}
 	number := rand.Int31n(max-min+1) + min
 	return connect.NewResponse(&generatorpb.GetRandomNumberResponse{
