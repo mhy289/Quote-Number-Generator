@@ -2,85 +2,56 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
 	"time"
 
-	"connectrpc.com/connect"
+	"quote_generator/generatorpb"
+
+	"github.com/bufbuild/connect-go"
 )
 
-// 请求/响应结构
-type GetRandomNumberRequest struct {
-	Min int32 `json:"min"`
-	Max int32 `json:"max"`
-}
-type GetRandomNumberResponse struct {
-	Number int32 `json:"number"`
+type generatorService struct {
+	generatorpb.UnimplementedGeneratorServiceHandler
+	quotes []string
 }
 
-type GetRandomQuoteRequest struct{}
-type GetRandomQuoteResponse struct {
-	Quote string `json:"quote"`
-}
-
-// handler 实现（符合 connect.NewUnaryHandler 的泛型签名）
-func handleGetRandomNumber(ctx context.Context, req *connect.Request[GetRandomNumberRequest]) (*connect.Response[GetRandomNumberResponse], error) {
-	min, max := req.Msg.Min, req.Msg.Max
+func (s *generatorService) GetRandomNumber(ctx context.Context, req *connect.Request[generatorpb.GetRandomNumberRequest]) (*connect.Response[generatorpb.GetRandomNumberResponse], error) {
+	min := req.Msg.Min
+	max := req.Msg.Max
 	if max < min {
-		max = min
+		min, max = max, min
 	}
-	src := rand.New(rand.NewSource(time.Now().UnixNano()))
-	n := src.Int31n(max-min+1) + min
-	return connect.NewResponse(&GetRandomNumberResponse{Number: n}), nil
+	number := rand.Int31n(max-min+1) + min
+	return connect.NewResponse(&generatorpb.GetRandomNumberResponse{
+		Number: number,
+	}), nil
 }
 
-func handleGetRandomQuote(ctx context.Context, req *connect.Request[GetRandomQuoteRequest]) (*connect.Response[GetRandomQuoteResponse], error) {
-	quotes := []string{
-		"Stay hungry, stay foolish.",
-		"Life is what happens when you're busy making other plans.",
-		"Be yourself; everyone else is already taken.",
-	}
-	src := rand.New(rand.NewSource(time.Now().UnixNano()))
-	q := quotes[src.Intn(len(quotes))]
-	return connect.NewResponse(&GetRandomQuoteResponse{Quote: q}), nil
-}
-
-// 简单 CORS 包装（允许来自 http://localhost:3000）
-func withCORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+func (s *generatorService) GetRandomQuote(ctx context.Context, req *connect.Request[generatorpb.GetRandomQuoteRequest]) (*connect.Response[generatorpb.GetRandomQuoteResponse], error) {
+	n := rand.Intn(len(s.quotes))
+	return connect.NewResponse(&generatorpb.GetRandomQuoteResponse{
+		Quote: s.quotes[n],
+	}), nil
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
+	quotes := []string{
+		"Stay hungry, stay foolish.",
+		"The only limit to our realization of tomorrow is our doubts of today.",
+		"Life is what happens when you're busy making other plans.",
+		"Do not take life too seriously. You will never get out of it alive.",
+	}
+
+	svc := &generatorService{quotes: quotes}
+
 	mux := http.NewServeMux()
+	mux.Handle(generatorpb.NewGeneratorServiceHandler(svc))
 
-	// **显式保存路径字符串并复用它来注册**
-	numPath := "/generator.v1.GeneratorService/GetRandomNumber"
-	quotePath := "/generator.v1.GeneratorService/GetRandomQuote"
-
-	// NewUnaryHandler 返回 *connect.Handler（单一返回值）
-	numHandler := connect.NewUnaryHandler[GetRandomNumberRequest, GetRandomNumberResponse](
-		numPath,
-		handleGetRandomNumber,
-	)
-	quoteHandler := connect.NewUnaryHandler[GetRandomQuoteRequest, GetRandomQuoteResponse](
-		quotePath,
-		handleGetRandomQuote,
-	)
-
-	// 用保存的路径字符串去注册 handler 到 mux
-	mux.Handle(numPath, withCORS(numHandler))
-	mux.Handle(quotePath, withCORS(quoteHandler))
-
-	log.Println("ConnectRPC (JSON-compatible) server listening on :8080")
+	fmt.Println("Server listening at :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }
