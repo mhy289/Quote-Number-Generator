@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/rs/cors"
 	"log"
 	"math/rand"
 	"net/http"
@@ -64,6 +65,14 @@ func main() {
 	path, handler := generatorpbconnect.NewGeneratorServiceHandler(svc)
 	mux.Handle(path, handler)
 
+	// CORS 支持
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"}, // 前端地址
+		AllowCredentials: true,
+		AllowedMethods:   []string{"POST", "GET", "OPTIONS"},
+		AllowedHeaders:   []string{"*"},
+	})
+
 	fmt.Println("Server listening at :8080")
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(http.ListenAndServe(":8080", c.Handler(mux)))
 }

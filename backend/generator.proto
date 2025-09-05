@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package generator;
+
+option go_package = "quote_generator/backend/generatorpb;generatorpb";
+
+// 服务定义
+service GeneratorService {
+  rpc GetRandomNumber(GetRandomNumberRequest) returns (GetRandomNumberResponse);
+  rpc GetRandomQuote(GetRandomQuoteRequest) returns (GetRandomQuoteResponse);
+}
+
+// 随机数请求与响应
+message GetRandomNumberRequest {
+  int32 min = 1;
+  int32 max = 2;
+}
+
+message GetRandomNumberResponse {
+  int32 number = 1;
+}
+
+// 随机名言请求与响应
+message GetRandomQuoteRequest {}
+
+message GetRandomQuoteResponse {
+  string quote = 1;
+}
