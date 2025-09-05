@@ -10,7 +10,7 @@ import (
 	"connectrpc.com/connect"
 )
 
-// ===== 请求/响应结构体（JSON 字段小写，匹配前端） =====
+// 请求/响应结构
 type GetRandomNumberRequest struct {
 	Min int32 `json:"min"`
 	Max int32 `json:"max"`
@@ -24,7 +24,7 @@ type GetRandomQuoteResponse struct {
 	Quote string `json:"quote"`
 }
 
-// ===== handler 实现（与 connect.NewUnaryHandler 的泛型签名匹配） =====
+// handler 实现（符合 connect.NewUnaryHandler 的泛型签名）
 func handleGetRandomNumber(ctx context.Context, req *connect.Request[GetRandomNumberRequest]) (*connect.Response[GetRandomNumberResponse], error) {
 	min, max := req.Msg.Min, req.Msg.Max
 	if max < min {
@@ -46,7 +46,7 @@ func handleGetRandomQuote(ctx context.Context, req *connect.Request[GetRandomQuo
 	return connect.NewResponse(&GetRandomQuoteResponse{Quote: q}), nil
 }
 
-// 简单 CORS 包装（允许来自 http://localhost:3000 的前端）
+// 简单 CORS 包装（允许来自 http://localhost:3000）
 func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
@@ -63,21 +63,24 @@ func withCORS(next http.Handler) http.Handler {
 func main() {
 	mux := http.NewServeMux()
 
-	// v1.18.1: NewUnaryHandler 返回 *connect.Handler（单返回值）
+	// **显式保存路径字符串并复用它来注册**
+	numPath := "/generator.v1.GeneratorService/GetRandomNumber"
+	quotePath := "/generator.v1.GeneratorService/GetRandomQuote"
+
+	// NewUnaryHandler 返回 *connect.Handler（单一返回值）
 	numHandler := connect.NewUnaryHandler[GetRandomNumberRequest, GetRandomNumberResponse](
-		"/generator.v1.GeneratorService/GetRandomNumber",
+		numPath,
 		handleGetRandomNumber,
 	)
-
 	quoteHandler := connect.NewUnaryHandler[GetRandomQuoteRequest, GetRandomQuoteResponse](
-		"/generator.v1.GeneratorService/GetRandomQuote",
+		quotePath,
 		handleGetRandomQuote,
 	)
 
-	// 注册到 mux（路径与 NewUnaryHandler 中的第一个参数保持一致）
-	mux.Handle("/generator.v1.GeneratorService/GetRandomNumber", withCORS(numHandler))
-	mux.Handle("/generator.v1.GeneratorService/GetRandomQuote", withCORS(quoteHandler))
+	// 用保存的路径字符串去注册 handler 到 mux
+	mux.Handle(numPath, withCORS(numHandler))
+	mux.Handle(quotePath, withCORS(quoteHandler))
 
-	log.Println("ConnectRPC (JSON) server listening on :8080")
+	log.Println("ConnectRPC (JSON-compatible) server listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }
