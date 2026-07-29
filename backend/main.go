@@ -92,13 +92,15 @@ func main() {
 	switch *mode {
 	case "http":
 		startHTTPService(svc, *port)
+		// 阻塞主线程，防止程序退出
+		select {}
 	case "console":
 		runConsoleMenu(svc)
 	case "all":
 		startHTTPService(svc, *port)
 		runConsoleMenu(svc)
 	default:
-		fmt.Printf("❌ 未知模式: %s，可用模式: http / console / all\n", *mode)
+		fmt.Printf("❌ 未知模式: %s，可用模式: http / console / all\\n", *mode)
 		os.Exit(1)
 	}
 }
