@@ -31,8 +31,10 @@ backend/
 │       └── generator.connect.go         # ConnectRPC 客户端/服务端骨架
 │
 └── tools/                               # 辅助工具（独立运行，不参与编译）
-    ├── fetch_quotes.go                  # 从网页抓取名言并保存到 data/quotes.json
-    └── fetch_check.go                   # 检查网页结构，辅助调试爬虫
+    ├── sources/
+    │   └── source.go                    # 数据源定义：网站URL、编码、正则、解析逻辑
+    ├── fetch_quotes.go                  # 名言爬虫，支持多数据源
+    └── fetch_check.go                   # 网页结构探测工具，支持多数据源
 ```
 
 ### 文件职责说明
@@ -43,8 +45,9 @@ backend/
 | `generator.proto` | 接口契约定义（RPC 方法 + 消息结构） |
 | `generator_service_test.go` | 单元测试（参数校验、范围验证、稳定性测试） |
 | `data/quotes.json` | 名言数据源，服务启动时自动加载 |
-| `tools/fetch_quotes.go` | 名言爬虫，从指定网页抓取并解析名言 |
-| `tools/fetch_check.go` | 网页结构探测工具，用于调试爬虫正则 |
+| `tools/sources/source.go` | 数据源定义：网站URL、编码、正则、解析逻辑，新增源只需在此追加 |
+| `tools/fetch_quotes.go` | 名言爬虫，支持多数据源（`--source` 参数选择） |
+| `tools/fetch_check.go` | 网页结构探测工具，支持多数据源 |
 
 ## 快速启动
 
@@ -137,10 +140,24 @@ go test -v
 
 ## 辅助工具
 
+### 列出可用数据源
+
+```bash
+go run tools/fetch_quotes.go --list
+go run tools/fetch_check.go --list
+```
+
 ### 抓取名言
 
 ```bash
+# 使用默认数据源（yuwenmi）
 go run tools/fetch_quotes.go
+
+# 指定数据源
+go run tools/fetch_quotes.go --source=yuwenmi
+
+# 指定输出路径
+go run tools/fetch_quotes.go --output=data/quotes.json
 ```
 
 从指定网页抓取名言列表，自动解析并保存到 `data/quotes.json`。
@@ -148,10 +165,26 @@ go run tools/fetch_quotes.go
 ### 检查网页结构
 
 ```bash
+# 使用默认数据源
 go run tools/fetch_check.go
+
+# 指定数据源
+go run tools/fetch_check.go --source=yuwenmi
+
+# 搜索指定关键词附近内容
+go run tools/fetch_check.go --keyword="1、"
 ```
 
 探测目标网页的 HTML 结构，辅助调试爬虫正则表达式。
+
+### 工具参数一览
+
+| 参数 | 适用工具 | 类型 | 默认值 | 说明 |
+|------|----------|------|--------|------|
+| `--source` | 两者 | string | `yuwenmi` | 数据源名称 |
+| `--list` | 两者 | bool | `false` | 列出所有可用数据源 |
+| `--output` | fetch_quotes | string | `data/quotes.json` | 输出文件路径 |
+| `--keyword` | fetch_check | string | `1、` | 搜索关键词 |
 
 ## 开发指南
 
@@ -170,6 +203,28 @@ go run tools/fetch_check.go
 ### 添加名言
 
 编辑 `data/quotes.json` 文件，或运行 `go run tools/fetch_quotes.go` 从网页重新抓取。
+
+### 新增数据源
+
+在 `tools/sources/source.go` 的 `init()` 或 `DefaultSources` 中追加新的 `*Source` 即可：
+
+```go
+var NewSource = &Source{
+    Name:        "my-source",
+    URL:         "https://example.com/quotes",
+    Encoding:    nil, // UTF-8 无需编码转换
+    Description: "我的名言源",
+    Pattern:     regexp.MustCompile(`...`),
+}
+
+// 在 DefaultSources 中注册
+var DefaultSources = []*Source{
+    YuwenmiSource,
+    NewSource, // <-- 新增
+}
+```
+
+新增后，`--list` 会自动显示，`--source=my-source` 即可使用。
 
 ## CORS 配置
 
