@@ -73,7 +73,7 @@ func main() {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// 从外部文件加载名言（如果存在）
-	quotes := loadQuotes("quotes.json")
+	quotes := loadQuotes("data/quotes.json")
 
 	// 初始化服务
 	svc := &generatorService{
