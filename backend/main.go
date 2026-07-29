@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"github.com/rs/cors"
 	"log"
@@ -75,6 +76,11 @@ func main() {
 	// 使用时间戳作为随机种子，确保每次启动序列不同
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 
+	// 命令行参数定义
+	mode := flag.String("mode", "all", "启动模式: http / console / all")
+	port := flag.Int("port", 8080, "HTTP 服务端口")
+	flag.Parse()
+
 	// 从外部文件加载名言（如果存在）
 	quotes := loadQuotes("data/quotes.json")
 
@@ -83,6 +89,22 @@ func main() {
 		quotes: quotes,
 	}
 
+	switch *mode {
+	case "http":
+		startHTTPService(svc, *port)
+	case "console":
+		runConsoleMenu(svc)
+	case "all":
+		startHTTPService(svc, *port)
+		runConsoleMenu(svc)
+	default:
+		fmt.Printf("❌ 未知模式: %s，可用模式: http / console / all\n", *mode)
+		os.Exit(1)
+	}
+}
+
+// startHTTPService 启动 HTTP 服务
+func startHTTPService(svc *generatorService, port int) {
 	// 创建 HTTP mux
 	mux := http.NewServeMux()
 
@@ -98,14 +120,11 @@ func main() {
 		AllowedHeaders:   []string{"*"},
 	})
 
-	// 启动 HTTP 服务（goroutine 避免阻塞）
+	addr := fmt.Sprintf(":%d", port)
 	go func() {
-		fmt.Println("🌐 HTTP 服务已启动: http://localhost:8080")
-		log.Fatal(http.ListenAndServe(":8080", c.Handler(mux)))
+		fmt.Printf("🌐 HTTP 服务已启动: http://localhost%s\n", addr)
+		log.Fatal(http.ListenAndServe(addr, c.Handler(mux)))
 	}()
-
-	// 启动交互式控制台菜单
-	runConsoleMenu(svc)
 }
 
 // runConsoleMenu 提供交互式控制台菜单
