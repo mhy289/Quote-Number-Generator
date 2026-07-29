@@ -40,29 +40,19 @@ Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "按 Ctrl+C 停止所有服务" -ForegroundColor Gray
 
-# 等待任意一个 Job 结束
-while ($true) {
-    $backendState = (Receive-Job -Job $backendJob -ErrorAction SilentlyContinue)
-    $frontendState = (Receive-Job -Job $frontendJob -ErrorAction SilentlyContinue)
+# 阻塞等待任意 Job 结束
+$completedJob = Wait-Job -Job $backendJob, $frontendJob -Any
 
-    if ($backendJob.State -eq "Failed") {
-        Write-Host "❌ 后端服务异常退出" -ForegroundColor Red
-        Write-Host $backendState -ForegroundColor Red
-        break
-    }
-    if ($frontendJob.State -eq "Failed") {
-        Write-Host "❌ 前端服务异常退出" -ForegroundColor Red
-        Write-Host $frontendState -ForegroundColor Red
-        break
-    }
-
-    Start-Sleep -Seconds 2
+if ($completedJob.State -eq "Failed") {
+    $reason = Receive-Job -Job $completedJob -ErrorAction SilentlyContinue
+    Write-Host "❌ 服务异常退出: $reason" -ForegroundColor Red
+} else {
+    Write-Host "⚠️  服务已停止" -ForegroundColor Yellow
 }
 
-# 清理
-Write-Host "🛑 正在停止所有服务..." -ForegroundColor Yellow
-Stop-Job -Job $backendJob -ErrorAction SilentlyContinue
-Stop-Job -Job $frontendJob -ErrorAction SilentlyContinue
-Remove-Job -Job $backendJob -ErrorAction SilentlyContinue
-Remove-Job -Job $frontendJob -ErrorAction SilentlyContinue
+# 清理另一个仍在运行的 Job
+$backendJob, $frontendJob | Where-Object { $_.State -eq "Running" } | Stop-Job
+$backendJob, $frontendJob | Remove-Job -Force
+
 Write-Host "👋 已退出" -ForegroundColor Gray
+Start-Sleep -Seconds 2

@@ -44,5 +44,24 @@ cleanup() {
 
 trap cleanup SIGINT SIGTERM
 
-# 等待任意子进程结束
-wait
+# 阻塞等待，直到任意子进程退出
+while true; do
+    if ! kill -0 $BACKEND_PID 2>/dev/null && ! kill -0 $FRONTEND_PID 2>/dev/null; then
+        echo ""
+        echo "⚠️  所有服务已停止"
+        break
+    fi
+    if ! kill -0 $BACKEND_PID 2>/dev/null; then
+        echo ""
+        echo "⚠️  后端服务已停止"
+        break
+    fi
+    if ! kill -0 $FRONTEND_PID 2>/dev/null; then
+        echo ""
+        echo "⚠️  前端服务已停止"
+        break
+    fi
+    sleep 2
+done
+
+cleanup
