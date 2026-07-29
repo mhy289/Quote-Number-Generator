@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -10,6 +11,8 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	connect "connectrpc.com/connect"                                    // Request/Response/NewResponse
@@ -95,6 +98,88 @@ func main() {
 		AllowedHeaders:   []string{"*"},
 	})
 
-	fmt.Println("Server listening at :8080")
-	log.Fatal(http.ListenAndServe(":8080", c.Handler(mux)))
+	// 启动 HTTP 服务（goroutine 避免阻塞）
+	go func() {
+		fmt.Println("🌐 HTTP 服务已启动: http://localhost:8080")
+		log.Fatal(http.ListenAndServe(":8080", c.Handler(mux)))
+	}()
+
+	// 启动交互式控制台菜单
+	runConsoleMenu(svc)
+}
+
+// runConsoleMenu 提供交互式控制台菜单
+func runConsoleMenu(svc *generatorService) {
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Println("\n========================================")
+	fmt.Println("  🎯 QuoteGenerator 控制台交互模式")
+	fmt.Println("========================================")
+	fmt.Println("  1. 生成随机数")
+	fmt.Println("  2. 获取随机名言")
+	fmt.Println("  0. 退出")
+	fmt.Println("========================================")
+
+	for {
+		fmt.Print("\n请输入数字选择操作: ")
+		if !scanner.Scan() {
+			break
+		}
+		input := strings.TrimSpace(scanner.Text())
+		choice, err := strconv.Atoi(input)
+		if err != nil {
+			fmt.Println("❌ 请输入有效的数字")
+			continue
+		}
+
+		switch choice {
+		case 1:
+			handleConsoleRandomNumber(scanner)
+		case 2:
+			handleConsoleQuote(svc)
+		case 0:
+			fmt.Println("👋 已退出，服务仍在后台运行")
+			return
+		default:
+			fmt.Println("❌ 无效选项，请输入 0-2")
+		}
+	}
+}
+
+// handleConsoleRandomNumber 控制台交互：生成随机数
+func handleConsoleRandomNumber(scanner *bufio.Scanner) {
+	fmt.Print("  请输入最小值: ")
+	if !scanner.Scan() {
+		return
+	}
+	minStr := strings.TrimSpace(scanner.Text())
+	min, err := strconv.Atoi(minStr)
+	if err != nil {
+		fmt.Println("❌ 无效的最小值")
+		return
+	}
+
+	fmt.Print("  请输入最大值: ")
+	if !scanner.Scan() {
+		return
+	}
+	maxStr := strings.TrimSpace(scanner.Text())
+	max, err := strconv.Atoi(maxStr)
+	if err != nil {
+		fmt.Println("❌ 无效的最大值")
+		return
+	}
+
+	if max < min {
+		fmt.Println("❌ 最小值不能大于最大值")
+		return
+	}
+
+	number := rand.Int31n(int32(max-min+1)) + int32(min)
+	fmt.Printf("✅ 随机数: %d (范围: %d ~ %d)\n", number, min, max)
+}
+
+// handleConsoleQuote 控制台交互：获取随机名言
+func handleConsoleQuote(svc *generatorService) {
+	n := rand.Intn(len(svc.quotes))
+	fmt.Printf("💬 名言: \"%s\"\n", svc.quotes[n])
 }
