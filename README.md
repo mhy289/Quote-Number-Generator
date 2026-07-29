@@ -31,23 +31,31 @@ QuoteGenerator/
 
 ## 快速启动
 
-### 1. 启动后端服务
+### 一键启动（推荐）
 
-后端支持 **三种启动模式**，通过 `--mode` 参数控制：
+在项目根目录执行对应系统的脚本，即可同时启动前后端服务：
+
+| 系统 | 命令 |
+|------|------|
+| **Windows (cmd)** | `start.bat` |
+| **Windows (PowerShell)** | `.\start.ps1` |
+| **Linux / macOS / Git Bash** | `bash start.sh` |
+
+### 分别启动
+
+#### 1. 启动后端服务
 
 ```bash
 cd backend
 
-# 模式一：仅启动 HTTP 服务（无控制台菜单）
-go run main.go --mode=http
+# 仅启动 HTTP 服务
+go run . --mode=http
 
-# 模式二：仅启动控制台交互模式（无 HTTP 服务）
-go run main.go --mode=console
+# 仅启动控制台交互模式
+go run . --mode=console
 
-# 模式三：同时启动 HTTP 服务 + 控制台菜单（默认）
-go run main.go
-# 或显式指定
-go run main.go --mode=all
+# 同时启动 HTTP 服务 + 控制台菜单（默认）
+go run .
 ```
 
 | 参数 | 类型 | 默认值 | 说明 |
@@ -55,9 +63,9 @@ go run main.go --mode=all
 | `--mode` | string | `all` | 启动模式：`http` / `console` / `all` |
 | `--port` | int | `8080` | HTTP 服务监听端口 |
 
-> 示例：`go run main.go --mode=http --port=9090` 仅启动 HTTP 服务并监听 9090 端口。
+> 示例：`go run . --mode=http --port=9090`
 
-### 2. 启动前端应用
+#### 2. 启动前端应用
 
 ```bash
 cd frontend
