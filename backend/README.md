@@ -17,15 +17,34 @@
 backend/
 ├── main.go                              # 业务逻辑 + 服务启动入口
 ├── generator.proto                      # Protobuf 接口定义文件
-├── generatorpb/
-│   ├── generator.pb.go                  # 自动生成的 Protobuf 消息类型
-│   └── generatorpbconnect/
-│       └── generator.connect.go         # 自动生成的 ConnectRPC 客户端/服务端骨架
 ├── generator_service_test.go            # 单元测试
 ├── go.mod                               # Go 模块定义
 ├── go.sum                               # 依赖校验文件
-└── README.md                            # 本文件
+├── README.md                            # 本文件
+│
+├── data/
+│   └── quotes.json                      # 名言数据源（86.8KB，约 300 条）
+│
+├── generatorpb/                         # Protobuf 自动生成代码
+│   ├── generator.pb.go                  # 消息类型
+│   └── generatorpbconnect/
+│       └── generator.connect.go         # ConnectRPC 客户端/服务端骨架
+│
+└── tools/                               # 辅助工具（独立运行，不参与编译）
+    ├── fetch_quotes.go                  # 从网页抓取名言并保存到 data/quotes.json
+    └── fetch_check.go                   # 检查网页结构，辅助调试爬虫
 ```
+
+### 文件职责说明
+
+| 文件 | 职责 |
+|------|------|
+| `main.go` | 核心业务逻辑 + HTTP 服务启动 + 控制台交互菜单 |
+| `generator.proto` | 接口契约定义（RPC 方法 + 消息结构） |
+| `generator_service_test.go` | 单元测试（参数校验、范围验证、稳定性测试） |
+| `data/quotes.json` | 名言数据源，服务启动时自动加载 |
+| `tools/fetch_quotes.go` | 名言爬虫，从指定网页抓取并解析名言 |
+| `tools/fetch_check.go` | 网页结构探测工具，用于调试爬虫正则 |
 
 ## 快速启动
 
@@ -33,15 +52,15 @@ backend/
 
 ```bash
 # 模式一：仅启动 HTTP 服务（无控制台菜单）
-go run main.go --mode=http
+go run . --mode=http
 
 # 模式二：仅启动控制台交互模式（无 HTTP 服务）
-go run main.go --mode=console
+go run . --mode=console
 
 # 模式三：同时启动 HTTP 服务 + 控制台菜单（默认）
-go run main.go
+go run .
 # 或显式指定
-go run main.go --mode=all
+go run . --mode=all
 ```
 
 ### 命令行参数
@@ -51,7 +70,7 @@ go run main.go --mode=all
 | `--mode` | string | `all` | 启动模式：`http` / `console` / `all` |
 | `--port` | int | `8080` | HTTP 服务监听端口 |
 
-> 示例：`go run main.go --mode=http --port=9090` 仅启动 HTTP 服务并监听 9090 端口。
+> 示例：`go run . --mode=http --port=9090` 仅启动 HTTP 服务并监听 9090 端口。
 
 ### 控制台交互模式
 
@@ -103,11 +122,7 @@ Content-Type: application/json
 响应: {"quote": "Stay hungry, stay foolish."}
 ```
 
-**预设名言列表**：
-1. "Stay hungry, stay foolish."
-2. "Life is what happens when you're busy making other plans."
-3. "The only limit to our realization of tomorrow is our doubts of today."
-4. "Do not take life too seriously. You will never get out of it alive."
+**名言数据源**：服务启动时自动加载 `data/quotes.json` 文件（约 300 条名言），文件不存在时使用内置默认列表。
 
 ## 运行测试
 
@@ -119,6 +134,24 @@ go test -v
 - `TestGetRandomNumber` — 参数校验 + 范围验证
 - `TestGetRandomQuote` — 返回值有效性验证
 - `TestGetRandomNumberMultipleTimes` — 100 次连续调用稳定性验证
+
+## 辅助工具
+
+### 抓取名言
+
+```bash
+go run tools/fetch_quotes.go
+```
+
+从指定网页抓取名言列表，自动解析并保存到 `data/quotes.json`。
+
+### 检查网页结构
+
+```bash
+go run tools/fetch_check.go
+```
+
+探测目标网页的 HTML 结构，辅助调试爬虫正则表达式。
 
 ## 开发指南
 
@@ -136,7 +169,7 @@ go test -v
 
 ### 添加名言
 
-编辑 `main.go` 中 `generatorService` 初始化时的 `quotes` 切片即可。
+编辑 `data/quotes.json` 文件，或运行 `go run tools/fetch_quotes.go` 从网页重新抓取。
 
 ## CORS 配置
 
