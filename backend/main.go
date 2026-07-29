@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/rs/cors"
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
+	"time"
 
 	connect "connectrpc.com/connect"                                    // Request/Response/NewResponse
 	generatorpb "quote_generator/generatorpb"                           // protobuf 消息类型
@@ -47,17 +50,34 @@ func (s *generatorService) GetRandomQuote(
 	}), nil
 }
 
+// loadQuotes 从外部 JSON 文件加载名言列表，文件不存在则使用默认值
+func loadQuotes(path string) []string {
+	data, err := os.ReadFile(path)
+	if err == nil {
+		var quotes []string
+		if json.Unmarshal(data, &quotes) == nil && len(quotes) > 0 {
+			return quotes
+		}
+	}
+	// 默认名言列表
+	return []string{
+		"Stay hungry, stay foolish.",
+		"Life is what happens when you're busy making other plans.",
+		"The only limit to our realization of tomorrow is our doubts of today.",
+		"Do not take life too seriously. You will never get out of it alive.",
+	}
+}
+
 func main() {
-	rand.Seed(0)
+	// 使用时间戳作为随机种子，确保每次启动序列不同
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	// 从外部文件加载名言（如果存在）
+	quotes := loadQuotes("quotes.json")
 
 	// 初始化服务
 	svc := &generatorService{
-		quotes: []string{
-			"Stay hungry, stay foolish.",
-			"Life is what happens when you're busy making other plans.",
-			"The only limit to our realization of tomorrow is our doubts of today.",
-			"Do not take life too seriously. You will never get out of it alive.",
-		},
+		quotes: quotes,
 	}
 
 	// 创建 HTTP mux
