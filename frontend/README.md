@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# QuoteGenerator 前端应用
 
-## Getting Started
+基于 **Next.js (App Router)** 构建的随机名言/数字生成器前端应用。
 
-First, run the development server:
+## 技术栈
+
+| 技术 | 说明 |
+|---|---|
+| Next.js | React 全栈框架 (App Router) |
+| TypeScript | 类型安全 |
+| ConnectRPC-Web | 与后端 RPC 通信 |
+
+## 快速启动
 
 ```bash
+# 安装依赖
+npm install
+
+# 启动开发服务器
 npm run dev
-# or
+# 或
 yarn dev
-# or
+# 或
 pnpm dev
-# or
+# 或
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+应用运行在 [http://localhost:3000](http://localhost:3000)。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 功能
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **随机数字生成** — 指定范围生成随机整数
+- **随机名言展示** — 从后端预设名言列表中随机获取一条
 
-## Learn More
+## 后端依赖
 
-To learn more about Next.js, take a look at the following resources:
+前端需要后端服务同时运行（默认连接 `http://localhost:8080`），请先启动后端：
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+cd ../backend
+go run main.go
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 项目结构
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+frontend/
+├── app/               # Next.js App Router 页面
+│   ├── page.tsx       # 主页面
+│   ├── layout.tsx     # 布局组件
+│   └── globals.css    # 全局样式
+├── public/            # 静态资源
+├── package.json       # 依赖配置
+└── README.md          # 本文件
+```
